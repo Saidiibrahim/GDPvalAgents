@@ -8,4 +8,6 @@ dependencies = [
     "anthropic>=0.71.0",
     "ipykernel>=7.0.1",
     "openai>=2.4.0",
+    "python-dotenv>=1.0.0",
+    "supabase>=2.22.0",
 ]

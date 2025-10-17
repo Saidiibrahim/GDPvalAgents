@@ -20,6 +20,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.52",
     "@ai-sdk/react": "^2.0.72",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.75.0",
     "ai": "^5.0.72",
     "dotenv": "^17.2.3",
     "zod": "^4.1.12"

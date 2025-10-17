@@ -1,48 +1,57 @@
-import { generateText, tool, stepCountIs } from 'ai';
+import { stepCountIs, Experimental_Agent as Agent, tool } from "ai";
+import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import {
+  getSitesCountTool,
+  getDeliveriesCountLastNDaysTool,
+  getCollectionsCountLastNDaysTool,
+  getDeliveriesCountByStatusTool,
+  getSitesByRegionCountsTool,
+} from "../tools/logistics";
 
-// Set the maximum duration for this function
-export const maxDuration = 60; // 60 seconds
-
-export async function POST(request: Request) {
-  const { prompt }: { prompt?: string } = await request.json();
-
-  if (!prompt) {
-    return new Response('Prompt is required', { status: 400 });
-  }
-
-  const result = await generateText({
-    model: 'openai/gpt-5',
-    prompt,
-    stopWhen: stepCountIs(5),
-    tools: {
-      weather: tool({
-        description: 'Get the weather in a location',
-        inputSchema: z.object({
-          location: z.string().describe('The location to get the weather for'),
-        }),
-        execute: async ({ location }) => ({
-          location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10,
-        }),
+const weatherAgent = new Agent({
+  model: openai('gpt-4o'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location (in Fahrenheit)',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
       }),
-      activities: tool({
-        description: 'Get the activities in a location',
-        inputSchema: z.object({
-          location: z
-            .string()
-            .describe('The location to get the activities for'),
-        }),
-        execute: async ({ location }) => ({
-          location,
-          activities: ['hiking', 'swimming', 'sightseeing'],
-        }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
       }),
-    },
-  });
+    }),
+    convertFahrenheitToCelsius: tool({
+      description: 'Convert temperature from Fahrenheit to Celsius',
+      inputSchema: z.object({
+        temperature: z.number().describe('Temperature in Fahrenheit'),
+      }),
+      execute: async ({ temperature }) => {
+        const celsius = Math.round((temperature - 32) * (5 / 9));
+        return { celsius };
+      },
+    }),
+    // Logistics-v0 tools
+    getSitesCount: getSitesCountTool,
+    getDeliveriesCountLastNDays: getDeliveriesCountLastNDaysTool,
+    getCollectionsCountLastNDays: getCollectionsCountLastNDaysTool,
+    getDeliveriesCountByStatus: getDeliveriesCountByStatusTool,
+    getSitesByRegionCounts: getSitesByRegionCountsTool,
+  },
+  stopWhen: stepCountIs(20),
+});
 
-  return Response.json({
-    steps: result.steps,
-    finalAnswer: result.text,
-  });
-}
+const logisticsAgent = new Agent({
+  model: openai('gpt-4o'),
+  tools: {
+    getSitesCount: getSitesCountTool,
+    getDeliveriesCountLastNDays: getDeliveriesCountLastNDaysTool,
+    getCollectionsCountLastNDays: getCollectionsCountLastNDaysTool,
+    getDeliveriesCountByStatus: getDeliveriesCountByStatusTool,
+    getSitesByRegionCounts: getSitesByRegionCountsTool,
+  },
+  stopWhen: stepCountIs(20),
+});
+
+export { weatherAgent, logisticsAgent };
