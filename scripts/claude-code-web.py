@@ -12,7 +12,7 @@
 
 import modal
 
-app = modal.App.lookup("example-sandbox-agent", create_if_missing=True)
+app = modal.App.lookup("claude-code-web", create_if_missing=True)
 
 # First we create a custom Image that has Claude Code installed.
 image = (
@@ -28,14 +28,14 @@ with modal.enable_output():
     sandbox = modal.Sandbox.create(app=app, image=image)
 print(f"Sandbox ID: {sandbox.object_id}")
 
-# Next we'll clone a repository that Claude Code will work on.
-repo_url = "https://github.com/modal-labs/modal-examples"
-git_ps = sandbox.exec("git", "clone", repo_url, "/repo")
-git_ps.wait()
-print(f"Cloned '{repo_url}' into /repo.")
-
 # Finally we'll run Claude Code to analyze the repository.
-claude_cmd = ["claude", "-p", "What is in this repository?"]
+claude_cmd = [
+    "claude",
+    "-p",
+    "search the web for the latest results of the english premier league",
+    "--allowedTools", "WebSearch(*) WebFetch(*)",
+    "--permission-mode", "bypassPermissions",
+]
 
 print("\nRunning command:", claude_cmd)
 
@@ -45,7 +45,6 @@ claude_ps = sandbox.exec(
     secrets=[
         modal.Secret.from_name("anthropic-secret", required_keys=["ANTHROPIC_API_KEY"])
     ],
-    workdir="/repo",
 )
 claude_ps.wait()
 

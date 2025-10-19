@@ -112,6 +112,10 @@ image = (
         "npm install -g @anthropic-ai/claude-code", # Needed for Agent SDK
     )
     .pip_install("claude-agent-sdk", "openai")
+    .add_local_dir(
+        local_path="./output",
+        remote_path="/output"
+    )
 )
 
 sb = modal.Sandbox.create(app=app, image=image, secrets=[secret])
@@ -123,10 +127,11 @@ p = sb.exec("python", "-c", driver_program_command, bufsize=1)
 # The Sandbox and our code interpreter are stateful,
 # so we can define variables and use them in subsequent code.
 
-# Run Agent SDK code  # The result is: 15
-print("Running Agent SDK code")
-run_code(p, """
+# Run Agent SDK code
+run_code(p, "print('Running Agent SDK code')")
+run_code(p, '''
 import asyncio
+import os
 
 from claude_agent_sdk import (
 AssistantMessage,
@@ -136,24 +141,32 @@ TextBlock,
 query,
 )
 
-async def with_options_example():
+async def with_tools_example():
     options = ClaudeAgentOptions(
         system_prompt="You are a helpful assistant that explains things simply.",
-        max_turns=1,
+        allowed_tools=["Read", "Write"],
+        add_dirs=["/output"],
     )
 
     async for message in query(
-        prompt="Explain what Python is in one sentence.", options=options
+        prompt="Create a file called hello.txt with 'Hello, World!' in it in the /output directory",
+        options=options
     ):
         if isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, TextBlock):
                     print(f"Claude: {block.text}")
+        elif isinstance(message, ResultMessage) and message.total_cost_usd > 0:
+            print(f"Cost: ${message.total_cost_usd:.4f}")
     print()
 
 
-asyncio.run(with_options_example())
-""")
+asyncio.run(with_tools_example())
+''')
+
+# Confirm the file was created by listing the directory
+run_code(p, "print('Confirming the file was created by listing the directory')")
+run_code(p, 'print("Directory content:", os.listdir("/output"))')
 
 # Finally, let's clean up after ourselves and terminate the Sandbox.
 sb.terminate()
