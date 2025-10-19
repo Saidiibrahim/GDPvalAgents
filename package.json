@@ -9,15 +9,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.6",
     "@types/node": "^24.7.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "ultracite": "^5.6.4"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.33",
     "@ai-sdk/openai": "^2.0.52",
     "@ai-sdk/react": "^2.0.72",
     "@supabase/ssr": "^0.7.0",

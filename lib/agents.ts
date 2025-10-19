@@ -1,21 +1,26 @@
-import { stepCountIs, Experimental_Agent as Agent, tool } from "ai";
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
+import { openai } from "@ai-sdk/openai";
+import { Experimental_Agent as Agent, stepCountIs, tool } from "ai";
+import { z } from "zod";
 import {
-  getSitesCountTool,
-  getDeliveriesCountLastNDaysTool,
   getCollectionsCountLastNDaysTool,
   getDeliveriesCountByStatusTool,
+  getDeliveriesCountLastNDaysTool,
+  getOrdersByStatusTool,
+  getOrdersByTypeTool,
+  getOrdersForSiteTool,
+  getPendingOrdersTool,
+  getRecentOrdersTool,
   getSitesByRegionCountsTool,
+  getSitesCountTool,
 } from "../tools/logistics";
 
 const weatherAgent = new Agent({
-  model: openai('gpt-4o'),
+  model: openai("gpt-4o"),
   tools: {
     weather: tool({
-      description: 'Get the weather in a location (in Fahrenheit)',
+      description: "Get the weather in a location (in Fahrenheit)",
       inputSchema: z.object({
-        location: z.string().describe('The location to get the weather for'),
+        location: z.string().describe("The location to get the weather for"),
       }),
       execute: async ({ location }) => ({
         location,
@@ -23,9 +28,9 @@ const weatherAgent = new Agent({
       }),
     }),
     convertFahrenheitToCelsius: tool({
-      description: 'Convert temperature from Fahrenheit to Celsius',
+      description: "Convert temperature from Fahrenheit to Celsius",
       inputSchema: z.object({
-        temperature: z.number().describe('Temperature in Fahrenheit'),
+        temperature: z.number().describe("Temperature in Fahrenheit"),
       }),
       execute: async ({ temperature }) => {
         const celsius = Math.round((temperature - 32) * (5 / 9));
@@ -43,7 +48,7 @@ const weatherAgent = new Agent({
 });
 
 const logisticsAgent = new Agent({
-  model: openai('gpt-4o'),
+  model: openai("gpt-4o"),
   tools: {
     getSitesCount: getSitesCountTool,
     getDeliveriesCountLastNDays: getDeliveriesCountLastNDaysTool,
@@ -54,4 +59,22 @@ const logisticsAgent = new Agent({
   stopWhen: stepCountIs(20),
 });
 
-export { weatherAgent, logisticsAgent };
+const customerName = "Ibrahim";
+
+const customerSupportAgent = new Agent({
+  model: openai("gpt-4o"),
+  system: `You are a customer support agent. You are responsible for helping customers with their orders.
+  The customer's name is ${customerName}.
+  Always start by greeting the customer by name.
+    `,
+  tools: {
+    getRecentOrders: getRecentOrdersTool,
+    getPendingOrders: getPendingOrdersTool,
+    getOrdersByStatus: getOrdersByStatusTool,
+    getOrdersByType: getOrdersByTypeTool,
+    getOrdersForSite: getOrdersForSiteTool,
+  },
+  stopWhen: stepCountIs(20),
+});
+
+export { customerSupportAgent, logisticsAgent, weatherAgent };
